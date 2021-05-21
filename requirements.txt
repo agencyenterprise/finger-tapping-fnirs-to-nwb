@@ -1,0 +1,5 @@
+numpy~=1.19
+hdmf~=2.5
+pynwb~=1.4
+ndx-nirs~=0.1.0
+
