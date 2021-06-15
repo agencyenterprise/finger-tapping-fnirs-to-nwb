@@ -1,5 +1,5 @@
 from hdmf.common import DynamicTableRegion
-from pynwb import NWBFile
+from pynwb import NWBFile, TimeSeries
 from pynwb.file import Subject
 from ndx_nirs import (
     NIRSDevice,
@@ -10,6 +10,7 @@ from ndx_nirs import (
 )
 
 from snirf import (
+    check_length_unit,
     extract_source_labels,
     extract_source_pos,
     extract_detector_labels,
@@ -20,6 +21,8 @@ from snirf import (
     get_snirf_data,
     get_session_datetime,
     get_subject_id,
+    get_subject_dateofbirth,
+    get_subject_sex,
 )
 
 
@@ -29,7 +32,11 @@ def convert_to_nwb(
     session_description="not available",
     manufacturer="unknown",
     nirs_mode="continuous-wave",
+    stim_data=None,
 ):
+
+    check_length_unit(snirf)
+
     sources = compile_sources_table(
         extract_source_labels(snirf), extract_source_pos(snirf)
     )
@@ -46,14 +53,23 @@ def convert_to_nwb(
         get_snirf_timestamps(snirf), get_snirf_data(snirf), channels
     )
 
+    subject_id = get_subject_id(snirf)
+    date_of_birth = get_subject_dateofbirth(snirf)
+    sex = get_subject_sex(snirf)
+    subject = compile_subject(subject_id, date_of_birth, sex)
+
     nwb = NWBFile(
         session_description=session_description,
         identifier=file_identifier,
         session_start_time=get_session_datetime(snirf),
-        subject=Subject(subject_id=get_subject_id(snirf)),
+        subject=subject,
         devices=[device],
     )
     nwb.add_acquisition(nirs_series)
+    if stim_data is not None:
+        stim_timeseries = compile_stim_timeseries(stim_data)
+        nwb.add_stimulus(stim_timeseries)
+
     return nwb
 
 
@@ -113,4 +129,23 @@ def compile_series(timestamps, raw_data, channels):
         ),
         data=raw_data,
         unit="V",
+    )
+
+
+def compile_subject(subject_id, date_of_birth, sex):
+    return Subject(subject_id=subject_id, date_of_birth=date_of_birth, sex=sex)
+
+
+def compile_stim_timeseries(stim_data):
+    return TimeSeries(
+        name="auditory",
+        data=stim_data.trial_type.to_list(),
+        timestamps=stim_data.onset.values,
+        description=(
+            "Auditory stimuli presented to the subject. The three data columns"
+            " represent: 1. description of the stimulus, 2. duration of the"
+            " stimulus (in seconds), and 3. the id representing the stimulus"
+        ),
+        comments="The duration of all stimuli is 5 seconds",
+        unit="N/A",
     )

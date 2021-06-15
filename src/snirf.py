@@ -1,6 +1,7 @@
 import pytz
 from datetime import datetime
 
+import pandas as pd
 import h5py
 
 
@@ -25,6 +26,21 @@ def get_subject_id(snirf):
     meta = snirf["nirs"]["metaDataTags"]
     subject_id = decode_str_array(meta["SubjectID"])
     return subject_id
+
+
+def get_subject_dateofbirth(snirf):
+    meta = snirf["nirs"]["metaDataTags"]
+    dateofbirth = decode_str_array(meta["DateOfBirth"])
+    return datetime.strptime(dateofbirth, "%Y-%m-%d").astimezone(pytz.UTC)
+
+
+def get_subject_sex(snirf):
+    meta = snirf["nirs"]["metaDataTags"]
+    sex_id = decode_str_array(meta["sex"])
+    sex_map = {"1": "M", "2": "F"}
+    if sex_id not in sex_map:
+        raise KeyError(f"sex id: {sex_id} is not known")
+    return sex_map[sex_id]
 
 
 def extract_source_labels(snirf):
@@ -53,6 +69,13 @@ def extract_detector_labels(snirf):
 def extract_detector_pos(snirf):
     pos_arr = snirf["nirs"]["probe"]["detectorPos3D"][:]
     return [pos_arr[n] for n in range(pos_arr.shape[0])]
+
+
+def check_length_unit(snirf):
+    meta = snirf["nirs"]["metaDataTags"]
+    length_unit = decode_str_array(meta["LengthUnit"])
+    if length_unit != "m":
+        raise ValueError(f"Length unit: {length_unit} is not supported")
 
 
 def extract_wavelengths(snirf):
@@ -86,3 +109,14 @@ def get_snirf_data(snirf):
 
 def get_snirf_timestamps(snirf):
     return snirf["nirs"]["data1"]["time"][:].flatten()
+
+
+def load_stim_table(stim_path):
+    stim = pd.read_csv(stim_path, sep="\t")
+
+    # ignore the start and end of experiment events as they are not stimulus
+    stim = stim[stim.value != 15]
+    # all durations should be 5 seconds, but are currently 0.0 or 1.0
+    # this may be a bug in the snirf creation script
+    stim.duration = 5.0
+    return stim

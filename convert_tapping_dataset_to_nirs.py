@@ -6,7 +6,7 @@ from pynwb import NWBHDF5IO
 
 # todo compile conversion tools into an installable package
 sys.path.append("src")
-from snirf import load_snirf
+from snirf import load_snirf, load_stim_table
 from nwb import convert_to_nwb
 
 
@@ -23,10 +23,13 @@ def list_subj_dirs(dataset_dir):
 def convert_subject_snirf_to_nwb(subj_dir):
     subj_id = subj_dir.name
     snirf_path = subj_dir / "nirs" / f"{subj_id}_task-tapping_nirs.snirf"
+    stim_path = subj_dir / "nirs" / f"{subj_id}_task-tapping_events.tsv"
     nwb_path = subj_dir / "nirs" / f"{snirf_path.stem}.nwb"
 
     print("converting SNIRF --> NWB:")
     print(f"  {snirf_path} --> {nwb_path}")
+
+    stim_table = load_stim_table(stim_path)
 
     nwb = convert_to_nwb(
         load_snirf(snirf_path),
@@ -34,6 +37,7 @@ def convert_subject_snirf_to_nwb(subj_dir):
         session_description=f"{subj_id} NIRS recording data for a finger-tapping task",
         manufacturer="SNIRF",
         nirs_mode="continuous-wave",
+        stim_data=stim_table,
     )
 
     with NWBHDF5IO(str(nwb_path), "w") as io:
