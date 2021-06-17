@@ -38,25 +38,36 @@ def convert_to_nwb(
     check_length_unit(snirf)
 
     sources = compile_sources_table(
-        extract_source_labels(snirf), extract_source_pos(snirf)
+        labels=extract_source_labels(snirf), positions=extract_source_pos(snirf)
     )
     detectors = compile_detectors_table(
-        extract_detector_labels(snirf), extract_detector_pos(snirf)
+        labels=extract_detector_labels(snirf), positions=extract_detector_pos(snirf)
     )
 
-    channel_meta = extract_channels(snirf)
+    channels_meta = extract_channels(snirf)
     wavelengths = extract_wavelengths(snirf)
-    channels = compile_channels_table(channel_meta, sources, detectors, wavelengths)
+    channels = compile_channels_table(
+        channels_meta=channels_meta,
+        sources=sources,
+        detectors=detectors,
+        wavelengths=wavelengths,
+    )
 
-    device = compile_device(channels, manufacturer, nirs_mode)
+    device = compile_device(
+        channels=channels, manufacturer=manufacturer, nirs_mode=nirs_mode
+    )
     nirs_series = compile_series(
-        get_snirf_timestamps(snirf), get_snirf_data(snirf), channels
+        timestamps=get_snirf_timestamps(snirf),
+        raw_data=get_snirf_data(snirf),
+        channels=channels,
     )
 
     subject_id = get_subject_id(snirf)
     date_of_birth = get_subject_dateofbirth(snirf)
     sex = get_subject_sex(snirf)
-    subject = compile_subject(subject_id, date_of_birth, sex)
+    subject = compile_subject(
+        subject_id=subject_id, date_of_birth=date_of_birth, sex=sex
+    )
 
     nwb = NWBFile(
         session_description=session_description,
@@ -73,21 +84,21 @@ def convert_to_nwb(
     return nwb
 
 
-def compile_sources_table(labels, positions):
+def compile_sources_table(*, labels, positions):
     table = NIRSSourcesTable()
     for label, pos in zip(labels, positions):
         table.add_row({"label": label, "x": pos[0], "y": pos[1], "z": pos[2]})
     return table
 
 
-def compile_detectors_table(labels, positions):
+def compile_detectors_table(*, labels, positions):
     table = NIRSDetectorsTable()
     for label, pos in zip(labels, positions):
         table.add_row({"label": label, "x": pos[0], "y": pos[1], "z": pos[2]})
     return table
 
 
-def compile_channels_table(channels_meta, sources, detectors, wavelengths):
+def compile_channels_table(*, channels_meta, sources, detectors, wavelengths):
     table = NIRSChannelsTable()
     for channel_id, channel in channels_meta.items():
         source_label = sources.label[channel["source_idx"]]
@@ -104,7 +115,7 @@ def compile_channels_table(channels_meta, sources, detectors, wavelengths):
     return table
 
 
-def compile_device(channels, manufacturer, nirs_mode):
+def compile_device(*, channels, manufacturer, nirs_mode):
     return NIRSDevice(
         name="nirs_device",
         description="Information about the NIRS device used in this session",
@@ -116,7 +127,7 @@ def compile_device(channels, manufacturer, nirs_mode):
     )
 
 
-def compile_series(timestamps, raw_data, channels):
+def compile_series(*, timestamps, raw_data, channels):
     return NIRSSeries(
         name="nirs_data",
         description="The raw NIRS channel data",
@@ -132,7 +143,7 @@ def compile_series(timestamps, raw_data, channels):
     )
 
 
-def compile_subject(subject_id, date_of_birth, sex):
+def compile_subject(*, subject_id, date_of_birth, sex):
     return Subject(subject_id=subject_id, date_of_birth=date_of_birth, sex=sex)
 
 
