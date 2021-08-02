@@ -1,33 +1,30 @@
-from collections import OrderedDict
-
 from hdmf.common import DynamicTableRegion
-from pynwb import NWBFile, TimeSeries
-from pynwb.file import Subject
 from ndx_nirs import (
+    NIRSChannelsTable,
+    NIRSDetectorsTable,
     NIRSDevice,
     NIRSSeries,
-    NIRSChannelsTable,
     NIRSSourcesTable,
-    NIRSDetectorsTable,
 )
+from pynwb import NWBFile, TimeSeries
+from pynwb.file import Subject
 
 from snirf import (
-    check_units_of_measurement,
     check_nirs_data_type_and_index,
-    extract_source_labels,
-    extract_source_pos,
+    check_units_of_measurement,
+    extract_channels,
     extract_detector_labels,
     extract_detector_pos,
-    extract_channels,
+    extract_source_labels,
+    extract_source_pos,
     extract_wavelengths,
-    get_snirf_timestamps,
-    get_snirf_data,
     get_session_datetime,
-    get_subject_id,
+    get_snirf_data,
+    get_snirf_timestamps,
     get_subject_dateofbirth,
+    get_subject_id,
     get_subject_sex,
 )
-
 
 
 def convert_to_nwb(
@@ -43,9 +40,8 @@ def convert_to_nwb(
     experiment_description=None,
     institution=None,
     keywords=None,
-    publications=None
+    publications=None,
 ):
-
     check_units_of_measurement(snirf)
     check_nirs_data_type_and_index(snirf)
 

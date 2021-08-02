@@ -1,18 +1,22 @@
-import sys
 import os
 import re
-from pathlib import Path
+import sys
 from collections import OrderedDict
+from pathlib import Path
 
 from pynwb import NWBHDF5IO
 
-# todo compile conversion tools into an installable package
+# Ensure modules in `src` are importable (since we are not installing as a package)
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from snirf import load_snirf, get_format_version
-from bids import load_stim_table, get_bids_version, get_coordinate_frame_description, get_sidecar_metadata, get_dataset_authors
-
+from bids import (
+    get_bids_version,
+    get_coordinate_frame_description,
+    get_dataset_authors,
+    get_sidecar_metadata,
+    load_stim_table,
+)
 from nwb import convert_to_nwb
-
+from snirf import get_format_version, load_snirf
 
 CONVERTER_VERSION = "0.1.0-dev.001"
 
@@ -25,12 +29,9 @@ described in the montage section in the link below, short channels are attached 
 scalp too. Further details about the experiment (including presentation code) can be
 found at https://github.com/rob-luke/experiment-fNIRS-tapping.
 """
-
 INSTITUTION = "Macquarie University"
-
 PUBLICATIONS = ""
-
-KEYWORDS = []
+KEYWORDS = ["fNIRS", "Haemodynamics", "Motor Cortex", "Finger Tapping Task"]
 
 
 def list_subj_dirs(dataset_dir):
@@ -85,7 +86,11 @@ def compile_dataset_specific_notes(snirf, dataset_path, subject_id):
     notes["Conversion codebase version"] = CONVERTER_VERSION
 
     coordinates_description = get_coordinate_frame_description(dataset_path, subject_id)
-    desired_fields = ["NIRSCoordinateSystem", "NIRSCoordinateSystemDescription", "NIRSCoordinateUnits"]
+    desired_fields = [
+        "NIRSCoordinateSystem",
+        "NIRSCoordinateSystemDescription",
+        "NIRSCoordinateUnits",
+    ]
     for field in desired_fields:
         notes[field] = coordinates_description[field]
 
@@ -94,7 +99,7 @@ def compile_dataset_specific_notes(snirf, dataset_path, subject_id):
     for field in desired_fields:
         notes[field] = sidecare_metadata[field]
 
-    return '\n'.join(f"{k}: {v}" for k, v in notes.items())
+    return "\n".join(f"{k}: {v}" for k, v in notes.items())
 
 
 # todo use click and add command line arguments and help

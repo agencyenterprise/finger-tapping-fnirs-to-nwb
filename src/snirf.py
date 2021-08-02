@@ -1,8 +1,8 @@
-from io import UnsupportedOperation
-import pytz
 from datetime import datetime
+from io import UnsupportedOperation
 
 import h5py
+import pytz
 
 
 def load_snirf(file_path):
@@ -72,17 +72,15 @@ def extract_detector_pos(snirf):
 
 
 def check_units_of_measurement(snirf):
-    expected_unit_map = {
-        "LengthUnit": "m",
-        "TimeUnit": "s",
-        "FrequencyUnit": "Hz"
-    }
+    expected_unit_map = {"LengthUnit": "m", "TimeUnit": "s", "FrequencyUnit": "Hz"}
 
     metadata = snirf["nirs"]["metaDataTags"]
     for uom_field, expected_uom in expected_unit_map.items():
         actual_uom = decode_str_array(metadata[uom_field])
         if actual_uom != expected_uom:
-            raise ValueError(f"Unsupported unit of measurement for {uom_field}: expected '{expected_uom}', found '{actual_uom}'")
+            raise ValueError(
+                f"Unsupported unit of measurement for {uom_field}: expected '{expected_uom}', found '{actual_uom}'"
+            )
 
 
 def check_nirs_data_type_and_index(snirf):
@@ -90,9 +88,13 @@ def check_nirs_data_type_and_index(snirf):
         data_type = snirf["nirs"]["data1"][ml]["dataType"][()]
         data_type_index = snirf["nirs"]["data1"][ml]["dataTypeIndex"][()]
         if data_type != 1:
-            raise ValueError("The only supported value for SNIRF MeasurementList dataType is 1 (Continuous Wave - Amplitude), but received a value of {data_type}.")
+            raise ValueError(
+                "The only supported value for SNIRF MeasurementList dataType is 1 (Continuous Wave - Amplitude), but received a value of {data_type}."
+            )
         if data_type_index != 1:
-            raise ValueError("The only supported value for SNIRF MeasurementList dataTypeIndex of 1, but received a value of {data_type_index}.")
+            raise ValueError(
+                "The only supported value for SNIRF MeasurementList dataTypeIndex of 1, but received a value of {data_type_index}."
+            )
 
 
 def extract_wavelengths(snirf):
