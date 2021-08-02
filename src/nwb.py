@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from hdmf.common import DynamicTableRegion
 from pynwb import NWBFile, TimeSeries
 from pynwb.file import Subject
@@ -10,7 +12,8 @@ from ndx_nirs import (
 )
 
 from snirf import (
-    check_length_unit,
+    check_units_of_measurement,
+    check_nirs_data_type_and_index,
     extract_source_labels,
     extract_source_pos,
     extract_detector_labels,
@@ -26,16 +29,25 @@ from snirf import (
 )
 
 
+
 def convert_to_nwb(
     snirf,
+    *,
     file_identifier="N/A",
     session_description="not available",
     manufacturer="unknown",
     nirs_mode="continuous-wave",
     stim_data=None,
+    notes=None,
+    experimenter=None,
+    experiment_description=None,
+    institution=None,
+    keywords=None,
+    publications=None
 ):
 
-    check_length_unit(snirf)
+    check_units_of_measurement(snirf)
+    check_nirs_data_type_and_index(snirf)
 
     sources = compile_sources_table(
         labels=extract_source_labels(snirf), positions=extract_source_pos(snirf)
@@ -75,6 +87,12 @@ def convert_to_nwb(
         session_start_time=get_session_datetime(snirf),
         subject=subject,
         devices=[device],
+        experimenter=experimenter,
+        experiment_description=experiment_description,
+        institution=institution,
+        keywords=keywords,
+        notes=notes,
+        related_publications=publications,
     )
     nwb.add_acquisition(nirs_series)
     if stim_data is not None:

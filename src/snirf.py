@@ -1,7 +1,7 @@
+from io import UnsupportedOperation
 import pytz
 from datetime import datetime
 
-import pandas as pd
 import h5py
 
 
@@ -71,11 +71,28 @@ def extract_detector_pos(snirf):
     return [pos_arr[n] for n in range(pos_arr.shape[0])]
 
 
-def check_length_unit(snirf):
-    meta = snirf["nirs"]["metaDataTags"]
-    length_unit = decode_str_array(meta["LengthUnit"])
-    if length_unit != "m":
-        raise ValueError(f"Length unit: {length_unit} is not supported")
+def check_units_of_measurement(snirf):
+    expected_unit_map = {
+        "LengthUnit": "m",
+        "TimeUnit": "s",
+        "FrequencyUnit": "Hz"
+    }
+
+    metadata = snirf["nirs"]["metaDataTags"]
+    for uom_field, expected_uom in expected_unit_map.items():
+        actual_uom = decode_str_array(metadata[uom_field])
+        if actual_uom != expected_uom:
+            raise ValueError(f"Unsupported unit of measurement for {uom_field}: expected '{expected_uom}', found '{actual_uom}'")
+
+
+def check_nirs_data_type_and_index(snirf):
+    for ml in _list_measurement_list_groups(snirf):
+        data_type = snirf["nirs"]["data1"][ml]["dataType"][()]
+        data_type_index = snirf["nirs"]["data1"][ml]["dataTypeIndex"][()]
+        if data_type != 1:
+            raise ValueError("The only supported value for SNIRF MeasurementList dataType is 1 (Continuous Wave - Amplitude), but received a value of {data_type}.")
+        if data_type_index != 1:
+            raise ValueError("The only supported value for SNIRF MeasurementList dataTypeIndex of 1, but received a value of {data_type_index}.")
 
 
 def extract_wavelengths(snirf):
@@ -84,10 +101,7 @@ def extract_wavelengths(snirf):
 
 
 def extract_channels(snirf):
-    prefix = "measurementList"
-    data_keys = snirf["nirs"]["data1"].keys()
-    mls = [k for k in data_keys if k.startswith(prefix)]
-    channels = {int(ml[len(prefix) :]): ml for ml in mls}
+    channels = _map_channels_to_measurement_lists(snirf)
 
     def to_zero_based_index(arr):
         return int(arr[:].item()) - 1
@@ -103,6 +117,21 @@ def extract_channels(snirf):
     return {channel_id: extract_channel(ml) for channel_id, ml in channels.items()}
 
 
+def _list_measurement_list_groups(snirf):
+    return list(_map_channels_to_measurement_lists(snirf).values())
+
+
+def _map_channels_to_measurement_lists(snirf):
+    prefix = "measurementList"
+    data_keys = snirf["nirs"]["data1"].keys()
+    mls = [k for k in data_keys if k.startswith(prefix)]
+
+    def extract_channel_id(ml):
+        return int(ml[len(prefix) :])
+
+    return {extract_channel_id(ml): ml for ml in mls}
+
+
 def get_snirf_data(snirf):
     return snirf["nirs"]["data1"]["dataTimeSeries"][:]
 
@@ -111,12 +140,5 @@ def get_snirf_timestamps(snirf):
     return snirf["nirs"]["data1"]["time"][:].flatten()
 
 
-def load_stim_table(stim_path):
-    stim = pd.read_csv(stim_path, sep="\t")
-
-    # ignore the start and end of experiment events as they are not stimulus
-    stim = stim[stim.value != 15]
-    # all durations should be 5 seconds, but are currently 0.0 or 1.0
-    # this may be a bug in the snirf creation script
-    stim.duration = 5.0
-    return stim
+def get_format_version(snirf):
+    return decode_str_array(snirf["formatVersion"])
