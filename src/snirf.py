@@ -1,5 +1,4 @@
 from datetime import datetime
-from io import UnsupportedOperation
 
 import h5py
 import pytz
@@ -79,7 +78,8 @@ def check_units_of_measurement(snirf):
         actual_uom = decode_str_array(metadata[uom_field])
         if actual_uom != expected_uom:
             raise ValueError(
-                f"Unsupported unit of measurement for {uom_field}: expected '{expected_uom}', found '{actual_uom}'"
+                f"Unsupported unit of measurement for {uom_field}:"
+                f" expected '{expected_uom}', found '{actual_uom}'"
             )
 
 
@@ -89,11 +89,13 @@ def check_nirs_data_type_and_index(snirf):
         data_type_index = snirf["nirs"]["data1"][ml]["dataTypeIndex"][()]
         if data_type != 1:
             raise ValueError(
-                "The only supported value for SNIRF MeasurementList dataType is 1 (Continuous Wave - Amplitude), but received a value of {data_type}."
+                "Unsupported value for MeasurementList dataType: expected 1"
+                f" (Continuous Wave - Amplitude), but found {data_type}."
             )
         if data_type_index != 1:
             raise ValueError(
-                "The only supported value for SNIRF MeasurementList dataTypeIndex of 1, but received a value of {data_type_index}."
+                "Unsupported value for MeasurementList dataTypeIndex: expected 1,"
+                f" but received a value of {data_type_index}."
             )
 
 

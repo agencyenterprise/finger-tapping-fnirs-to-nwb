@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pynwb import NWBHDF5IO
 
-# Ensure modules in `src` are importable (since we are not installing as a package)
+# Ensure modules in `src` are findable before importing
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from bids import (
     get_bids_version,
@@ -85,14 +85,14 @@ def compile_dataset_specific_notes(snirf, dataset_path, subject_id):
     notes["Conversion script"] = os.path.basename(__file__)
     notes["Conversion codebase version"] = CONVERTER_VERSION
 
-    coordinates_description = get_coordinate_frame_description(dataset_path, subject_id)
+    coord_description = get_coordinate_frame_description(dataset_path, subject_id)
     desired_fields = [
         "NIRSCoordinateSystem",
         "NIRSCoordinateSystemDescription",
         "NIRSCoordinateUnits",
     ]
     for field in desired_fields:
-        notes[field] = coordinates_description[field]
+        notes[field] = coord_description[field]
 
     sidecare_metadata = get_sidecar_metadata(dataset_path, subject_id)
     desired_fields = ["TaskName", "PowerLineFrequency"]
