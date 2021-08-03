@@ -4,6 +4,7 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
+import click
 from pynwb import NWBHDF5IO
 
 # Ensure modules in `src` are findable before importing
@@ -102,10 +103,28 @@ def compile_dataset_specific_notes(snirf, dataset_path, subject_id):
     return "\n".join(f"{k}: {v}" for k, v in notes.items())
 
 
-# todo use click and add command line arguments and help
-if __name__ == "__main__":
-    dataset_path = Path(sys.argv[1])
+@click.command()
+@click.argument(
+    "dataset_path", type=click.Path(exists=True, file_okay=False, path_type=Path)
+)
+def main(dataset_path):
+    """Convert the fNIRS finger-tapping dataset to NWB for upload to the DANDI Archive.
+
+    This script is built to work specifically with the following dataset:
+    https://github.com/rob-luke/BIDS-NIRS-Tapping
+    (most recently updated to work with dataset commit 388d2cdc)
+
+    DATASET_PATH is the path to the root directory of the dataset.
+
+    The script maps SNIRF fields to NWB fields and outputs a .nwb file for each .snirf
+    file. Additionally, certain BIDS metadata which is not available in the snirf files
+    has been incorporated in to the NWB files.
+    """
     print("converting all snirf files in the dataset to nwb")
     print(f"dataset directory: {dataset_path}")
     for subj_dir in list_subj_dirs(dataset_path):
         convert_subject_snirf_to_nwb(dataset_path, subj_dir)
+
+
+if __name__ == "__main__":
+    main()
