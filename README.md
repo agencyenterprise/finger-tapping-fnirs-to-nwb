@@ -16,7 +16,8 @@ $ pip install -r requirements.txt
 ```bash
 $ mkdir data
 $ cd data
-$ git clone https://github.com/rob-luke/BIDS-NIRS-Tapping.git
+$ wget https://github.com/rob-luke/BIDS-NIRS-Tapping/archive/388d2cdc3ae831fc767e06d9b77298e9c5cd307b.zip BIDS-NIRS-Tapping.zip
+$ unzip BIDS-NIRS-Tapping.zip
 ```
 
 ## Usage

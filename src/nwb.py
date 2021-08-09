@@ -47,7 +47,7 @@ def convert_to_nwb(
     The NWB file contains details about the channels used in the device, the
     full acquisition data, as well as many other metadata fields.
 
-    Only nirs_mode currently supported is "continuous-wave"
+    The only nirs_mode currently supported is "continuous-wave".
     """
     check_units_of_measurement(snirf)
     check_nirs_data_type_and_index(snirf)

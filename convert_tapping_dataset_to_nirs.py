@@ -20,16 +20,17 @@ from bids import (
 from nwb import convert_to_nwb
 from snirf import get_format_version, load_snirf
 
-CONVERTER_VERSION = "0.1.0-dev.001"
+CONVERTER_VERSION = "0.1.0"
 
-# copied from: https://github.com/rob-luke/BIDS-NIRS-Tapping/blob/master/README.md
+# copied (with minimal edits) from:
+# https://github.com/rob-luke/BIDS-NIRS-Tapping/blob/388d2cdc3ae831fc767e06d9b77298e9c5cd307b/README.md
 EXPERIMENT_DESCRIPTION = """This experiment examines how the motor cortex is activated
 during a finger tapping task. Participants are asked to either tap their left thumb to
-fingers, tap their right thumb to fingers, or nothing (control). Tapping lasts for 5
-seconds as is propted by an auditory cue. Sensors are placed over the motor cortex as
-described in the montage section in the link below, short channels are attached to the
-scalp too. Further details about the experiment (including presentation code) can be
-found at https://github.com/rob-luke/experiment-fNIRS-tapping.
+fingers, tap their right thumb to fingers, or no cue is given (control). Tapping lasts
+for 5 seconds as is propted by an auditory cue. Sensors are placed over the motor
+cortex as described in the montage section in the link below, short channels are
+attached to the scalp too. Further details about the experiment (including presentation
+code) can be found at https://github.com/rob-luke/experiment-fNIRS-tapping.
 """
 INSTITUTION = "Macquarie University"
 PUBLICATIONS = ""
