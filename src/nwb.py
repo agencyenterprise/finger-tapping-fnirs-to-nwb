@@ -1,90 +1,113 @@
 from hdmf.common import DynamicTableRegion
-from pynwb import NWBFile, TimeSeries
-from pynwb.file import Subject
 from ndx_nirs import (
+    NIRSChannelsTable,
+    NIRSDetectorsTable,
     NIRSDevice,
     NIRSSeries,
-    NIRSChannelsTable,
     NIRSSourcesTable,
-    NIRSDetectorsTable,
 )
+from pynwb import NWBFile, TimeSeries
+from pynwb.file import Subject
 
 from snirf import (
-    check_length_unit,
-    extract_source_labels,
-    extract_source_pos,
-    extract_detector_labels,
-    extract_detector_pos,
-    extract_channels,
-    extract_wavelengths,
-    get_snirf_timestamps,
-    get_snirf_data,
+    check_nirs_data_type_and_index,
+    check_units_of_measurement,
+    compile_channel_data,
+    get_detector_labels,
+    get_detector_pos,
     get_session_datetime,
-    get_subject_id,
+    get_snirf_measurement_data,
+    get_snirf_measurement_timestamps,
+    get_source_labels,
+    get_source_pos,
     get_subject_dateofbirth,
+    get_subject_id,
     get_subject_sex,
+    get_wavelengths,
 )
 
 
 def convert_to_nwb(
     snirf,
+    *,
     file_identifier="N/A",
     session_description="not available",
     manufacturer="unknown",
     nirs_mode="continuous-wave",
-    stim_data=None,
+    stimulus_data=None,
+    notes=None,
+    experimenter=None,
+    experiment_description=None,
+    institution=None,
+    keywords=None,
+    publications=None,
 ):
+    """Converts a snirf object into an nwb object.
 
-    check_length_unit(snirf)
+    The NWB file contains details about the channels used in the device, the
+    full acquisition data, as well as many other metadata fields.
 
-    sources = compile_sources_table(
-        labels=extract_source_labels(snirf), positions=extract_source_pos(snirf)
-    )
-    detectors = compile_detectors_table(
-        labels=extract_detector_labels(snirf), positions=extract_detector_pos(snirf)
-    )
+    The only nirs_mode currently supported is "continuous-wave".
+    """
+    check_units_of_measurement(snirf)
+    check_nirs_data_type_and_index(snirf)
 
-    channels_meta = extract_channels(snirf)
-    wavelengths = extract_wavelengths(snirf)
-    channels = compile_channels_table(
-        channels_meta=channels_meta,
-        sources=sources,
-        detectors=detectors,
-        wavelengths=wavelengths,
-    )
-
+    channels = map_channel_metadata(snirf)
     device = compile_device(
         channels=channels, manufacturer=manufacturer, nirs_mode=nirs_mode
-    )
-    nirs_series = compile_series(
-        timestamps=get_snirf_timestamps(snirf),
-        raw_data=get_snirf_data(snirf),
-        channels=channels,
-    )
-
-    subject_id = get_subject_id(snirf)
-    date_of_birth = get_subject_dateofbirth(snirf)
-    sex = get_subject_sex(snirf)
-    subject = compile_subject(
-        subject_id=subject_id, date_of_birth=date_of_birth, sex=sex
     )
 
     nwb = NWBFile(
         session_description=session_description,
         identifier=file_identifier,
         session_start_time=get_session_datetime(snirf),
-        subject=subject,
+        subject=map_subject_metadata(snirf),
         devices=[device],
+        experimenter=experimenter,
+        experiment_description=experiment_description,
+        institution=institution,
+        keywords=keywords,
+        notes=notes,
+        related_publications=publications,
+    )
+
+    nirs_series = compile_series(
+        timestamps=get_snirf_measurement_timestamps(snirf),
+        raw_data=get_snirf_measurement_data(snirf),
+        channels=channels,
     )
     nwb.add_acquisition(nirs_series)
-    if stim_data is not None:
-        stim_timeseries = compile_stim_timeseries(stim_data)
+
+    if stimulus_data is not None:
+        stim_timeseries = compile_stim_timeseries(stimulus_data)
         nwb.add_stimulus(stim_timeseries)
 
     return nwb
 
 
+def map_channel_metadata(snirf):
+    """Reads channel information from the snirf object and compiles it into the
+    equivalent NWB object.
+    """
+    sources = compile_sources_table(
+        labels=get_source_labels(snirf), positions=get_source_pos(snirf)
+    )
+    detectors = compile_detectors_table(
+        labels=get_detector_labels(snirf), positions=get_detector_pos(snirf)
+    )
+
+    channels_meta = compile_channel_data(snirf)
+    wavelengths = get_wavelengths(snirf)
+    return compile_channels_table(
+        channels_meta=channels_meta,
+        sources=sources,
+        detectors=detectors,
+        wavelengths=wavelengths,
+    )
+
+
 def compile_sources_table(*, labels, positions):
+    """Compiles a NIRSSourcesTable given the source labels and positions."""
     table = NIRSSourcesTable()
     for label, pos in zip(labels, positions):
         table.add_row({"label": label, "x": pos[0], "y": pos[1], "z": pos[2]})
@@ -92,6 +115,7 @@ def compile_sources_table(*, labels, positions):
 
 
 def compile_detectors_table(*, labels, positions):
+    """Compiles a NIRSDetectorsTable given the detector labels and positions."""
     table = NIRSDetectorsTable()
     for label, pos in zip(labels, positions):
         table.add_row({"label": label, "x": pos[0], "y": pos[1], "z": pos[2]})
@@ -99,6 +123,9 @@ def compile_detectors_table(*, labels, positions):
 
 
 def compile_channels_table(*, channels_meta, sources, detectors, wavelengths):
+    """Compiles a NIRSChannelsTable given the details about the channels, sources,
+    detectors, and wavelengths.
+    """
     table = NIRSChannelsTable()
     for channel_id, channel in channels_meta.items():
         source_label = sources.label[channel["source_idx"]]
@@ -116,6 +143,7 @@ def compile_channels_table(*, channels_meta, sources, detectors, wavelengths):
 
 
 def compile_device(*, channels, manufacturer, nirs_mode):
+    """Compiles a NIRSDevice given the channel data and other metadata."""
     return NIRSDevice(
         name="nirs_device",
         description="Information about the NIRS device used in this session",
@@ -128,6 +156,7 @@ def compile_device(*, channels, manufacturer, nirs_mode):
 
 
 def compile_series(*, timestamps, raw_data, channels):
+    """Compiles a NIRSSeries given the raw data, timestamps, and channels."""
     return NIRSSeries(
         name="nirs_data",
         description="The raw NIRS channel data",
@@ -143,11 +172,23 @@ def compile_series(*, timestamps, raw_data, channels):
     )
 
 
+def map_subject_metadata(snirf):
+    """Reads subject metadata from the snirf object and compiles it into an NWB
+    Subject object.
+    """
+    subject_id = get_subject_id(snirf)
+    date_of_birth = get_subject_dateofbirth(snirf)
+    sex = get_subject_sex(snirf)
+    return compile_subject(subject_id=subject_id, date_of_birth=date_of_birth, sex=sex)
+
+
 def compile_subject(*, subject_id, date_of_birth, sex):
+    """Compiles the NWB Subject object."""
     return Subject(subject_id=subject_id, date_of_birth=date_of_birth, sex=sex)
 
 
 def compile_stim_timeseries(stim_data):
+    """Comples the stimulus TimeSeries object."""
     return TimeSeries(
         name="auditory",
         data=stim_data.trial_type.to_list(),

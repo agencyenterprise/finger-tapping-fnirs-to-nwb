@@ -2,33 +2,76 @@
 
 This repo contains python source code for converting data files in the [BIDS-NIRS-Tapping](https://github.com/rob-luke/BIDS-NIRS-Tapping) dataset from [SNIRF](https://github.com/fNIRS/snirf) format to [NWB](https://www.nwb.org/nwb-neurophysiology/) format using the [ndx-nirs](https://github.com/agencyenterprise/ndx-nirs) extension. In addition, scripts for arranging the files and uploading to the [DANDI archive](https://gui.dandiarchive.org/) are included.
 
-**Note:** this repo is at a very early WIP stage. Proper organization, documentation, unit tests, etc will be added with time.
+**Note:** this repo is at a WIP stage. Improved organization, documentation, unit tests, etc are expected to be added with time.
 
 
-## Installation
-
-Note: eventually this will be converted over to install via setup.py or poetry
+## Install Dependencies
 
 ```bash
 $ pip install -r requirements.txt
 ```
-
 
 ## Get Dataset
 
 ```bash
 $ mkdir data
 $ cd data
-$ git clone https://github.com/rob-luke/BIDS-NIRS-Tapping.git
+$ wget https://github.com/rob-luke/BIDS-NIRS-Tapping/archive/388d2cdc3ae831fc767e06d9b77298e9c5cd307b.zip BIDS-NIRS-Tapping.zip
+$ unzip BIDS-NIRS-Tapping.zip
 ```
 
 ## Usage
 
 ```bash
-$ python convert_tapping_dataset_to_nirs.py
+$ python convert_tapping_dataset_to_nirs.py data/BIDS-NIRS-Tapping.git
 ```
 
+For more usage information, you can execute:
+```bash
+$ python convert_tapping_dataset_to_nirs.py --help
+```
 
-## Example
+## Data Mapping Details
 
-WIP
+The currently implemented SNIRF -> NWB mapping is as follows:
+
+* `/formatVersion` -> `NWBFile.notes`
+* `/nirs/data1/dataTimeSeries` -> `NIRSSeries.data`
+* `/nirs/data1/time` -> `NIRSSeries.timestamps`
+* `/nirs/data1/measurementList{i}/sourceIndex` -> `NIRSChannelsTable.source`
+* `/nirs/data1/measurementList{i}/detectorIndex` -> `NIRSChannelsTable.detector`
+* `/nirs/data1/measurementList{i}/wavelengthIndex` -> `NIRSChannelsTable.source_wavelength`
+* `/nirs/data1/measurementList{i}/dataType` -> Checked but not mapped. Must have a value of `1` (Continuous Wave - Amplitude)
+* `/nirs/data1/measurementList{i}/dataTypeIndex` -> Checked but not mapped. Must have a value of `1`
+* `/nirs/metaDataTags/SubjectID` -> `Subject.subject_id`
+* `/nirs/metaDataTags/DateOfBirth` -> `Subject.date_of_birth`
+* `/nirs/metaDataTags/sex` -> `Subject.sex`
+* `/nirs/metaDataTags/MeasurementDate` -> `NWBFile.session_start_time`
+* `/nirs/metaDataTags/MeasurementTime` -> `NWBFile.session_start_time`
+* `/nirs/metaDataTags/LengthUnit` ->  Checked but not mapped. Must have a value of `'m'`
+* `/nirs/metaDataTags/TimeUnit` -> Checked but not mapped. Must have a value of `'s'`
+* `/nirs/metaDataTags/FrequencyUnit` -> Checked but not mapped. Must have a value of `'Hz'`
+* `/nirs/metaDataTags/MNE_coordFrame` -> Not Mapped
+* `/nirs/probe/wavelengths` -> `NIRSChannelsTable.source_wavelength`
+* `/nirs/probe/sourcePos3D` -> `NIRSSourcesTable.{x,y,z}`
+* `/nirs/probe/sourceLabels` -> `NIRSSourcesTable.label`
+* `/nirs/probe/detectorPos3D` -> `NIRSSourcesTable.{x,y,z}`
+* `/nirs/probe/detectorLabels` -> `NIRSSourcesTable.label`
+* `/nirs/probe/landmarkPos3D` -> Not Mapped
+* `/nirs/probe/landmarkLabels` -> Not Mapped
+* `/nirs/stim{i}/name` -> Not Mapped (equivalent info mapped from BIDS events tsv)
+* `/nirs/stim{i}/data` -> Not Mapped (equivalent info mapped from BIDS events tsv)
+
+Some additional data is mapped from BIDS metadata files:
+
+* `dataset_description.json`:
+    * `"BIDSVersion"` -> `NWBFile.notes`
+    * `"Authors"` -> `NWBFile.experimenter`
+* `subj-{i}/nirs/subj-{j}_coordsystem.json`
+    * `"NIRSCoordinateSystem"` -> `NWBFile.notes`
+    * `"NIRSCoordinateSystemDescription"` -> `NWBFile.notes`
+    * `"NIRSCoordinateUnits"` -> `NWBFile.notes`
+* `subj-{i}/nirs/subj-{j}_task-tapping_nirs.json`
+    * `"TaskName"` -> `NWBFile.notes`
+    * `"PowerLineFrequency"` -> `NWBFile.notes`
+* `subj-{i}/nirs/subj-{j}_task-tapping_events.tsv` -> `TimeSeries` in `NWBFile.stimulus`
