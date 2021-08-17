@@ -4,7 +4,6 @@ This repo contains python source code for converting data files in the [BIDS-NIR
 
 **Note:** this repo is at a WIP stage. Improved organization, documentation, unit tests, etc are expected to be added with time.
 
-
 ## Install Dependencies
 
 ```bash
@@ -19,6 +18,7 @@ $ cd data
 $ wget https://github.com/rob-luke/BIDS-NIRS-Tapping/archive/388d2cdc3ae831fc767e06d9b77298e9c5cd307b.zip -O BIDS-NIRS-Tapping.zip
 $ unzip BIDS-NIRS-Tapping.zip
 $ mv BIDS-NIRS-Tapping-388d2cdc3ae831fc767e06d9b77298e9c5cd307b BIDS-NIRS-Tapping
+$ cd ..
 ```
 
 ## Usage
