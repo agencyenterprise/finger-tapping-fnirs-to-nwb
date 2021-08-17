@@ -41,39 +41,53 @@ KEYWORDS = ["fNIRS", "Haemodynamics", "Motor Cortex", "Finger Tapping Task"]
 @click.argument(
     "dataset_path", type=click.Path(exists=True, file_okay=False, path_type=Path)
 )
-def main(dataset_path):
+@click.argument("output_path", type=click.Path(file_okay=False, path_type=Path))
+def main(dataset_path, output_path):
     """Convert the fNIRS finger-tapping dataset to NWB for upload to the DANDI Archive.
 
     This script is built to work specifically with the following dataset:
     https://github.com/rob-luke/BIDS-NIRS-Tapping
     (most recently updated to work with dataset commit 388d2cdc)
 
+    \b
     DATASET_PATH is the path to the root directory of the dataset.
+    OUTPUT_PATH is the path where the root of the output dataset should go.
 
     The script maps SNIRF fields to NWB fields and outputs a .nwb file for each .snirf
     file. Additionally, certain BIDS metadata which is not available in the snirf files
     has been incorporated in to the NWB files.
+
+    If OUTPUT_PATH does not exist, it will be created.
     """
-    print("converting all snirf files in the dataset to nwb")
+    print("converting all snirf files in the input dataset to nwb...")
     print(f"dataset directory: {dataset_path}")
+    print(f"output directory: {output_path}")
     print()
 
     for subject_id in list_subject_ids(dataset_path):
-        convert_subject_snirf_to_nwb(dataset_path, subject_id)
+        convert_subject_snirf_to_nwb(
+            input_root=dataset_path, output_root=output_path, subject_id=subject_id
+        )
 
     print()
     print("Conversion successful!")
 
 
-def convert_subject_snirf_to_nwb(dataset_path, subject_id):
+def convert_subject_snirf_to_nwb(*, input_root, output_root, subject_id):
     """Converts the snirf file into an nwb file for a particular subject.
 
     The nwb file written to disk has the same filename stem as the snirf file.
-    """
-    subject_dir = get_subject_dir(dataset_path, subject_id)
-    snirf_path = subject_dir / f"{subject_id}_task-tapping_nirs.snirf"
-    nwb_path = subject_dir / f"{snirf_path.stem}.nwb"
 
+    Args:
+        input_root (pathlib.Path): the root of the input dataset. Must exist.
+        output_root (pathlib.Path): the root of the output dataset. Will be created if
+            it does not exist.
+        subject_id (str): a string id in the form of 'sub-{02d}'. Must match an
+            existing subject in the input dataset.
+    """
+
+    snirf_path = _get_subject_input_path(input_root, subject_id)
+    nwb_path = _prepare_subject_output_path(output_root, subject_id)
     print("converting SNIRF --> NWB:")
     print(f"  {snirf_path} --> {nwb_path}")
 
@@ -86,11 +100,11 @@ def convert_subject_snirf_to_nwb(dataset_path, subject_id):
         ),
         manufacturer="SNIRF",
         nirs_mode="continuous-wave",
-        stimulus_data=load_stim_table(dataset_path, subject_id),
-        notes=compile_dataset_specific_notes(
-            snirf=snirf_data, dataset_path=dataset_path, subject_id=subject_id
+        stimulus_data=load_stim_table(input_root, subject_id),
+        notes=_compile_dataset_specific_notes(
+            snirf=snirf_data, dataset_path=input_root, subject_id=subject_id
         ),
-        experimenter=get_dataset_authors(dataset_path),
+        experimenter=get_dataset_authors(input_root),
         experiment_description=EXPERIMENT_DESCRIPTION,
         institution=INSTITUTION,
         keywords=KEYWORDS,
@@ -101,7 +115,23 @@ def convert_subject_snirf_to_nwb(dataset_path, subject_id):
         io.write(nwb)
 
 
-def compile_dataset_specific_notes(*, snirf, dataset_path, subject_id):
+def _get_subject_input_path(input_root, subject_id):
+    """Builds the path to an existing subject .snirf file."""
+    subject_dir = get_subject_dir(input_root, subject_id)
+    return subject_dir / f"{subject_id}_task-tapping_nirs.snirf"
+
+
+def _prepare_subject_output_path(output_root, subject_id):
+    """Builds the path to the desired output .nwb file.
+
+    Creates parent directories if needed.
+    """
+    output_dir = output_root / subject_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir / f"{subject_id}_task-tapping_nirs.nwb"
+
+
+def _compile_dataset_specific_notes(*, snirf, dataset_path, subject_id):
     """Compile a variety of miscellaneous information for use in the notes field."""
 
     notes = OrderedDict()

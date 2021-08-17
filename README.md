@@ -1,9 +1,8 @@
 # finger-tapping-fnirs-to-nwb
 
-This repo contains python source code for converting data files in the [BIDS-NIRS-Tapping](https://github.com/rob-luke/BIDS-NIRS-Tapping) dataset from [SNIRF](https://github.com/fNIRS/snirf) format to [NWB](https://www.nwb.org/nwb-neurophysiology/) format using the [ndx-nirs](https://github.com/agencyenterprise/ndx-nirs) extension. In addition, scripts for arranging the files and uploading to the [DANDI archive](https://gui.dandiarchive.org/) are included.
+This repo contains python source code for converting data files in the [BIDS-NIRS-Tapping](https://github.com/rob-luke/BIDS-NIRS-Tapping) dataset from [SNIRF](https://github.com/fNIRS/snirf) format to [NWB](https://www.nwb.org/nwb-neurophysiology/) format using the [ndx-nirs](https://github.com/agencyenterprise/ndx-nirs) extension. The NWB files will be placed in a directory structure appropriate for upload to the [DANDI archive](https://gui.dandiarchive.org/).
 
 **Note:** this repo is at a WIP stage. Improved organization, documentation, unit tests, etc are expected to be added with time.
-
 
 ## Install Dependencies
 
@@ -16,15 +15,19 @@ $ pip install -r requirements.txt
 ```bash
 $ mkdir data
 $ cd data
-$ wget https://github.com/rob-luke/BIDS-NIRS-Tapping/archive/388d2cdc3ae831fc767e06d9b77298e9c5cd307b.zip BIDS-NIRS-Tapping.zip
+$ wget https://github.com/rob-luke/BIDS-NIRS-Tapping/archive/388d2cdc3ae831fc767e06d9b77298e9c5cd307b.zip -O BIDS-NIRS-Tapping.zip
 $ unzip BIDS-NIRS-Tapping.zip
+$ mv BIDS-NIRS-Tapping-388d2cdc3ae831fc767e06d9b77298e9c5cd307b BIDS-NIRS-Tapping
+$ cd ..
 ```
 
 ## Usage
 
 ```bash
-$ python convert_tapping_dataset_to_nirs.py data/BIDS-NIRS-Tapping.git
+$ python convert_tapping_dataset_to_nirs.py data/BIDS-NIRS-Tapping data/dandiset
 ```
+
+This will read in the snirf files and BIDS metadata from `data/BIDS-NIRS-Tapping`, and output the nwb files in a dandiset-appropriate filestructure inside of `data/dandiset`. The input dataset path must already exist. If the output path does not exist it will be created.
 
 For more usage information, you can execute:
 ```bash
